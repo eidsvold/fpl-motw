@@ -1,0 +1,7 @@
+{
+  "[python]": {
+    "editor.codeActionsOnSave": ["source.organizeImports", "source.fixAll"],
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+  "black-formatter.args": ["--line-length", "88"]
+}
