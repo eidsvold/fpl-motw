@@ -38,6 +38,14 @@ if __name__ == "__main__":
         help="The ID of the event.",
     )
     parser.add_argument(
+        "--hits",
+        type=int,
+        required=False,
+        default=4,
+        dest="hits",
+        help="The number of hits to check difference from highest score.",
+    )
+    parser.add_argument(
         "-d",
         "--dest",
         type=str,
@@ -51,6 +59,7 @@ if __name__ == "__main__":
     log_level = args.log_level
     league_id = args.league_id
     event_id = args.event_id
+    hits = args.hits
     destination = args.destination
 
     logging.basicConfig(
@@ -66,7 +75,7 @@ if __name__ == "__main__":
     df = load_standings(league_id)
     logger.info(f"Loaded {len(df)} entries")
 
-    df = top_players_by_diff(df)
+    df = top_players_by_diff(df, diff=(hits * 4))
     if event_id is None:
         event_id = get_current_event(df["entry_id"][0])
 
@@ -78,6 +87,6 @@ if __name__ == "__main__":
     filename = f"top-players-league-{league_id}-event-{event_id}.csv"
     path = os.path.join(destination, filename)
 
-    df.write_csv(path, separator=";", include_bom=True)
+    df.head(20).write_csv(path, separator=";", include_bom=True)
 
     logger.info(f"Finished in {time.time() - start_time:.2f} seconds")

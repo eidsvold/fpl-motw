@@ -27,7 +27,7 @@ def load_standings(league_id: str) -> pl.DataFrame:
         if page > max_page:
             raise ValueError(f"Max page reached: {max_page}")
 
-        time.sleep(0.1)  # make sure we don't get rate limited
+        time.sleep(0.05)  # make sure we don't get rate limited
 
         response = requests.get(url, params={"phase": phase, "page_standings": page})
         data = response.json()
@@ -51,7 +51,7 @@ def load_standings(league_id: str) -> pl.DataFrame:
     return pl.DataFrame(standings)
 
 
-def top_players_by_diff(df: pl.DataFrame, diff: int = 12) -> pl.DataFrame:
+def top_players_by_diff(df: pl.DataFrame, diff: int) -> pl.DataFrame:
     """
     Filter the top players in the standings by finding the highest score and filtering
     all players that are within `diff` points of the highest score. This is a more
@@ -60,7 +60,7 @@ def top_players_by_diff(df: pl.DataFrame, diff: int = 12) -> pl.DataFrame:
     of the top N.
 
     :param df: The DataFrame with the top players, in descending order.
-    :param diff: The difference in points to the highest score. Default is 12 (3 hits).
+    :param diff: The difference in points to the highest score.
 
     :return: A DataFrame with the top players.
     """
@@ -89,7 +89,7 @@ def add_transfer_cost(df: pl.DataFrame, event_id: int) -> pl.DataFrame:
         cost = data.get("entry_history", {}).get("event_transfers_cost")
         additional.append({"entry_id": entry_id, "transfer_cost": cost})
 
-        time.sleep(0.1)  # make sure we don't get rate limited
+        time.sleep(0.05)  # make sure we don't get rate limited
 
     return df.join(pl.DataFrame(additional), on="entry_id")
 
