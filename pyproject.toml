@@ -1,2 +1,7 @@
+[project]
+name = "fpl-motw"
+version = "0.0.1"
+description = "Fantasy Premier League Managers of the Week"
+
 [project.scripts]
-greet = "greetings.cli:app"
+motw = "motw.cli:app"
