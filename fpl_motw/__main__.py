@@ -1,4 +1,4 @@
 if __name__ == "__main__":
-    from motw.cli import app
+    from fpl_motw.cli import app
 
     app()
