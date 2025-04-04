@@ -3,17 +3,8 @@
     "editor.codeActionsOnSave": ["source.organizeImports", "source.fixAll"],
     "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.formatOnSave": true,
-    "editor.rulers": [
-      88,
-      120
-    ]
+    "editor.rulers": [88, 120]
   },
   "black-formatter.args": ["--line-length", "88"],
-  "isort.args": [
-    "--profile",
-    "black"
-  ],
-  "cSpell.ignoreWords": [
-    "typer"
-  ],
+  "isort.args": ["--profile", "black"]
 }

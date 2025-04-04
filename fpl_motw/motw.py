@@ -40,33 +40,26 @@ def manager_of_the_week(
 ):
     start_time = time.time()
     with Progress() as progress:
-        increment = 100 / 4
-        task = progress.add_task(f"[green]Loading league results...", total=100)
+        task = progress.add_task(
+            f"[green]Loading results for {league_id}...", total=None
+        )
         df = load_current_league_results(league_id, dev_mode=dev_mode)
 
-        progress.update(
-            task,
-            advance=increment,
-            description="[green]Finding current gameweek...",
-        )
         gameweek_id = find_current_gameweek(df["entry"][0])
-
         progress.update(
             task,
-            advance=increment,
-            description=f"[green]Calcualting net top managers...",
+            description=f"[green]Calculating GW{gameweek_id} MOTW...",
         )
         df = net_managers_of_the_week(
             df, gameweek_id, limit=10, dev_mode=dev_mode, league_id=league_id
         )
 
+        filename = f"fpl-motw-{league_id}-gw{gameweek_id}.csv"
+        path = os.path.join(output_dir, filename)
         progress.update(
             task,
-            advance=increment,
-            description="[green]Writing results to file...",
+            description=f"[green]Saving to {path}...",
         )
-        filename = f"{league_id}-motw-gw-{gameweek_id}.csv"
-        path = os.path.join(output_dir, filename)
         pretty_cols = {
             "entry": "Manager ID",
             "player_name": "Manager",
@@ -86,8 +79,9 @@ def manager_of_the_week(
             description=f"[green]Completed in {time.time() - start_time:.2f} seconds",
         )
 
+    typer.echo(f"Results saved to {path}")
     with pl.Config(tbl_cols=len(df.columns), tbl_rows=len(df)):
-        typer.echo(f"Manager of the Week - GW{gameweek_id} -- league {league_id}:")
+        typer.echo(f"FPL Manager of the Week - {league_id} - GW{gameweek_id}")
         typer.echo(df)
 
 
@@ -107,7 +101,7 @@ def load_current_league_results(
     :param dev_mode (optional): Turn on development mode to enable writing of temporary
     files.
 
-    :return: A DataFrame with the results, ordered by highest gross score.
+    :return: A DataFrame with the current league results.
     """
 
     tmp_file = f"/tmp/{league_id}-current-results.parquet"
@@ -129,8 +123,9 @@ def load_current_league_results(
         has_next = response["standings"]["has_next"]
         page += 1
 
-    df = pl.DataFrame(standings).sort("event_total", descending=True)
+        time.sleep(0.01)
 
+    df = pl.DataFrame(standings)
     # if dev mode is enabled, save the standings to local temp file
     if dev_mode:
         df.write_parquet(tmp_file)
@@ -162,14 +157,13 @@ def net_managers_of_the_week(
     """
     Calculate the top net managers of the week and return the top `limit` managers.
     The net score is calculated by subtracting the transfer cost from the event total.
-    It will start from the highest event total and work downwards until it finds a manager
-    with a transfer cost of 0 and the limit is reached.
+    It assumes that the top manager hasn't made more than `hits` hits. One hit is 4 points.
 
     If dev mode is enabled, the function will try to load the results from a local file
-    at `/tmp/{league_id}-motw-gw-{gameweek_id}.parquet`. If the file does not exist, it
+    at `/tmp/motw-{league_id}-gw{gameweek_id}.parquet`. If the file does not exist, it
     will load from the API and save the file.
 
-    :param df: The DataFrame with the managers results.
+    :param df: The DataFrame with the managers results, sorted by highest gross points.
     :param gameweek_id: The gameweek ID.
     :param limit (optional): The number of managers to return.
     :param dev_mode (optional): Turn on development mode to enable writing of temporary
@@ -179,7 +173,7 @@ def net_managers_of_the_week(
     :return: A DataFrame with the top managers of the week.
     """
 
-    tmp_file = f"/tmp/{league_id}-motw-gw-{gameweek_id}.parquet"
+    tmp_file = f"/tmp/motw-{league_id}-gw{gameweek_id}.parquet"
     # if dev mode is enabled, try to load the standings from local temp file
     if dev_mode:
         try:
@@ -188,57 +182,39 @@ def net_managers_of_the_week(
         except FileNotFoundError:
             pass
 
-    lowest_cost = 2**31 - 1
-    lowest_score = 2**31 - 1
-    top_df = df.head(0).with_columns(
+    gross_highest = df["event_total"].max()
+    df_motw = df.head(0).with_columns(
         pl.lit(0).cast(pl.Int64).alias("transfer_cost"),
         pl.lit(0).cast(pl.Int64).alias("net_event_total"),
     )
 
-    for row in df.iter_rows(named=True):
+    for row in df.filter(pl.col("event_total") >= gross_highest - (hits * 4)).iter_rows(
+        named=True
+    ):
         response = get_manager_gameweek_picks(row["entry"], gameweek_id)
-        cost = response["entry_history"]["event_transfers_cost"]
-        if cost < lowest_cost:
-            lowest_cost = cost
-        net_score = row["event_total"] - cost
-        if net_score < lowest_score:
-            lowest_score = net_score
-        row_df = pl.DataFrame(
-            {
-                **row,
-                "transfer_cost": cost,
-                "net_event_total": net_score,
-            }
+        transfers_cost = response["entry_history"]["event_transfers_cost"]
+        net_event_total = row["event_total"] - transfers_cost
+        df_motw = df_motw.vstack(
+            pl.DataFrame(
+                {
+                    **row,
+                    "transfer_cost": transfers_cost,
+                    "net_event_total": net_event_total,
+                }
+            )
         )
-        top_df = top_df.vstack(row_df)
-        if len(top_df) >= limit and lowest_cost == 0:
-            break
 
-    # in case there are multiple managers tied for the lowest score
-    for row in df.filter(pl.col("event_total") == lowest_score).iter_rows(named=True):
-        if not top_df.filter(pl.col("entry") == row["entry"]).is_empty():
-            # already added this manager in the previous loop
-            continue
-        response = get_manager_gameweek_picks(row["entry"], gameweek_id)
-        cost = response["entry_history"]["event_transfers_cost"]
-        net_score = row["event_total"] - cost
-        if net_score < lowest_score:
-            break
-        row_df = pl.DataFrame(
-            {
-                **row,
-                "transfer_cost": cost,
-                "net_event_total": net_score,
-            }
-        )
-        top_df = top_df.vstack(row_df)
+        time.sleep(0.01)
 
-    top_df = top_df.sort("net_event_total", descending=True)
-    top_df = add_event_web_link(top_df, gameweek_id)
+    df_motw = df_motw.sort("net_event_total", descending=True)
+    limit_score = df_motw["net_event_total"][limit - 1]
+    df_motw = df_motw.filter(pl.col("net_event_total") >= limit_score)
+
+    df_motw = add_event_web_link(df_motw, gameweek_id)
     if dev_mode:
-        top_df.write_parquet(tmp_file)
+        df_motw.write_parquet(tmp_file)
 
-    return top_df
+    return df_motw
 
 
 def add_event_web_link(df: pl.DataFrame, gameweek_id: int) -> pl.DataFrame:
