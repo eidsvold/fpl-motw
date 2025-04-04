@@ -1,4 +1,4 @@
-# FPL Manager of the Week
+# Fantasy Premier League (FPL) Manager of the Week
 
 
 #### Install
