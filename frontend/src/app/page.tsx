@@ -27,10 +27,10 @@ import {
 
 export default function Home() {
   const [leagueId, setLeagueId] = useState("");
-  const [loadingMessage, setLoadingMessage] = useState("");
+  const [autoGenerate, setAutoGenerate] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [autoDownload, setAutoDownload] = useState(false);
 
   // Function to get URL parameters
   const getUrlParams = () => {
@@ -38,8 +38,8 @@ export default function Home() {
 
     const urlParams = new URLSearchParams(window.location.search);
     return {
-      leagueId: urlParams.get("leagueId") || urlParams.get("league_id") || "",
-      auto: urlParams.get("download") === "true",
+      leagueId: urlParams.get("leagueId") || "",
+      auto: urlParams.get("auto") === "true",
     };
   };
 
@@ -64,17 +64,17 @@ export default function Home() {
       setLeagueId(params.leagueId);
     }
     if (params.auto && params.leagueId) {
-      setAutoDownload(true);
+      setAutoGenerate(true);
     }
   }, []);
 
   // Auto-generate report if URL parameters indicate to do so
   useEffect(() => {
-    if (autoDownload && leagueId && !loadingMessage) {
-      setAutoDownload(false); // Prevent infinite loop
+    if (autoGenerate && leagueId && !loading) {
+      setAutoGenerate(false); // Prevent infinite loop
       handleSubmit(null);
     }
-  }, [autoDownload, leagueId, loadingMessage]);
+  }, [autoGenerate, leagueId, loading]);
 
   const handleSubmit = async (e?: React.FormEvent | null) => {
     if (e) {
@@ -88,22 +88,10 @@ export default function Home() {
 
     setError("");
     setSuccess("");
+    setLoading(true);
 
     try {
-      // Step 1: Validating league
-      setLoadingMessage("Validating league ID...");
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Step 2: Fetching league data
-      setLoadingMessage("Fetching league data from FPL API...");
-      await new Promise((resolve) => setTimeout(resolve, 800));
-
-      // Step 3: Processing data
-      setLoadingMessage("Processing manager standings...");
-      await new Promise((resolve) => setTimeout(resolve, 700));
-
-      // Step 4: Generating report
-      setLoadingMessage("Generating your report...");
+      await new Promise((resolve) => setTimeout(resolve, 1_000)); // Simulate delay
 
       // Determine the API base URL - adjust this based on your deployment
       const apiBaseUrl =
@@ -118,9 +106,6 @@ export default function Home() {
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
-      // Step 5: Preparing download
-      setLoadingMessage("Preparing download...");
 
       // Get the filename from the Content-Disposition header
       const contentDisposition = response.headers.get("Content-Disposition");
@@ -149,16 +134,14 @@ export default function Home() {
         }`,
       );
     } finally {
-      setLoadingMessage("");
+      setLoading(false);
     }
   };
 
-  const shareableUrl =
+  const autoGenerateUrl =
     typeof window !== "undefined" && leagueId
-      ? `${window.location.origin}${window.location.pathname}?leagueId=${leagueId}`
+      ? `${window.location.origin}${window.location.pathname}?leagueId=${leagueId}&auto=true`
       : "";
-
-  const autoDownloadUrl = shareableUrl ? `${shareableUrl}&download=true` : "";
 
   return (
     <Box
@@ -187,6 +170,18 @@ export default function Home() {
               FPL Manager of the Week
             </Title>
 
+            <Text
+              size="lg"
+              ta="center"
+              c="dimmed"
+              style={{
+                marginTop: "-1rem",
+                maxWidth: "350px",
+              }}
+            >
+              Generate Manager of the Week report for your FPL mini-league
+            </Text>
+
             {/* Main Form */}
             <Paper
               p="xl"
@@ -208,7 +203,7 @@ export default function Home() {
                       setLeagueId(e.target.value);
                       updateUrl(e.target.value);
                     }}
-                    disabled={!!loadingMessage}
+                    disabled={loading}
                     styles={{
                       label: { color: "white", fontWeight: 500 },
                     }}
@@ -216,32 +211,30 @@ export default function Home() {
 
                   <Button
                     type="submit"
-                    disabled={!leagueId || !!loadingMessage}
+                    disabled={!leagueId || loading}
                     leftSection={<IconDownload size={18} />}
                     size="lg"
                     radius="md"
                     style={{
                       marginTop: "1rem",
                       backgroundColor:
-                        !leagueId || !!loadingMessage
+                        !leagueId || loading
                           ? "var(--mantine-color-gray-6)"
                           : "var(--mantine-color-green-6)",
                       color:
-                        !leagueId || !!loadingMessage
-                          ? "var(--mantine-color-gray-4)"
-                          : "white",
-                      cursor: !leagueId || !!loadingMessage ? "not-allowed" : "pointer",
-                      opacity: !leagueId || !!loadingMessage ? 0.6 : 1,
+                        !leagueId || loading ? "var(--mantine-color-gray-4)" : "white",
+                      cursor: !leagueId || loading ? "not-allowed" : "pointer",
+                      opacity: !leagueId || loading ? 0.6 : 1,
                     }}
                   >
-                    Download
+                    Generate
                   </Button>
                 </Stack>
               </form>
             </Paper>
 
             {/* Status Messages */}
-            {loadingMessage && (
+            {loading && (
               <Alert
                 icon={
                   <div
@@ -270,7 +263,7 @@ export default function Home() {
                   `,
                   }}
                 />
-                {loadingMessage}
+                Generating Manager of the Week report...
               </Alert>
             )}
 
@@ -312,7 +305,7 @@ export default function Home() {
                     📋 Shareable URL
                   </Text>
                   <Text size="sm" c="dimmed">
-                    Copy this URL to share with others or bookmark it:
+                    Copy this URL to bookmark it or share with others:
                   </Text>
 
                   <Paper
@@ -326,14 +319,14 @@ export default function Home() {
                     }}
                   >
                     <Text size="xs" c="white">
-                      {autoDownloadUrl}
+                      {autoGenerateUrl}
                     </Text>
                   </Paper>
 
                   <Group justify="center">
-                    <CopyButton value={autoDownloadUrl}>
+                    <CopyButton value={autoGenerateUrl}>
                       {({ copied, copy }) => (
-                        <Tooltip label={copied ? "Copied" : "Copy auto-download URL"}>
+                        <Tooltip label={copied ? "Copied" : "Copy auto-generate URL"}>
                           <ActionIcon
                             color={copied ? "teal" : "green"}
                             variant="light"
@@ -369,8 +362,7 @@ export default function Home() {
                   component="ol"
                   style={{ paddingLeft: "1rem" }}
                 >
-                  <li>Go to your Fantasy Premier League account</li>
-                  <li>Navigate to your private league</li>
+                  <li>Navigate to your FPL mini-league</li>
                   <li>
                     Look at the URL - the league ID is the number after "/leagues/"
                   </li>
