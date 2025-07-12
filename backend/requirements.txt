@@ -1,0 +1,6 @@
+polars
+requests
+typer
+fastapi
+uvicorn
+aiofiles

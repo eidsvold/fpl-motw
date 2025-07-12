@@ -91,26 +91,25 @@ export default function Home() {
     setLoading(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1_000)); // Simulate delay
-
       // Determine the API base URL - adjust this based on your deployment
       const apiBaseUrl =
         process.env.NODE_ENV === "production"
-          ? "" // Same origin when served by Python API
-          : "http://localhost:8000";
+          ? "/api" // Same origin when served by Python API
+          : "http://localhost:8000/api";
 
-      const response = await fetch(
-        `${apiBaseUrl}/generate-file/?league_id=${leagueId}`,
-      );
+      const response = await fetch(`${apiBaseUrl}/report/${leagueId}`, {
+        method: "POST",
+      });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(`${errorData.detail || "Something went wrong"}`);
       }
 
       // Get the filename from the Content-Disposition header
       const contentDisposition = response.headers.get("Content-Disposition");
-      const filenameMatch = contentDisposition?.match(/filename="(.+)"/);
-      const filename = filenameMatch ? filenameMatch[1] : `fpl-motw-${leagueId}.csv`;
+      const filename =
+        contentDisposition?.match(/filename="(.+)"/)?.[1] || `fpl-motw-${leagueId}.csv`;
 
       // Create a blob from the response
       const blob = await response.blob();
@@ -126,13 +125,10 @@ export default function Home() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-      setSuccess("File generated and downloaded successfully!");
-    } catch (err) {
-      setError(
-        `Error generating file: ${
-          err instanceof Error ? err.message : "Unknown error"
-        }`,
-      );
+      setSuccess("Report generated and downloaded successfully!");
+    } catch (err: any) {
+      console.error("Error generating report:", err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }

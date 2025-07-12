@@ -1,0 +1,11 @@
+name: fpl-motw
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python
+  - pip
+  - pip:
+      - black
+      - isort
+      - -r requirements.txt
