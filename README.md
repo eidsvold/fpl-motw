@@ -1,20 +1,14 @@
 # Fantasy Premier League (FPL) Manager of the Week
 
+This project combines a Python FastAPI backend with a Next.js frontend that gets built as static files and served by the Python API.
 
-#### Install
-
-```bash
-pip install .
-```
-
-#### Usage
+## Build and Run with Docker Compose
 
 ```bash
-fpl-motw -l <league-id>
+docker compose up --build
 ```
 
-#### Help
+## Access Point
 
-```bash
-fpl-motw --help
-```
+- [http://localhost:8000](http://localhost:8000)
+
