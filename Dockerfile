@@ -17,7 +17,7 @@ ENV NODE_ENV=production
 ENV NEXT_PUBLIC_API_BASE_URL=/api
 
 # Build the frontend for static export
-RUN npm run build:production
+RUN npm run export
 
 # Stage 2: Build the Python API with the frontend
 FROM python:3.13-slim
