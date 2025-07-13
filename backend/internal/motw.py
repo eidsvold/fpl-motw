@@ -30,10 +30,10 @@ class ManagerOfTheWeek:
     def generate_report(self, league_id: str) -> Tuple[str, BytesIO]:
         """Generate the Manager of the Week report for a given league."""
         standings = self._get_league_standings(league_id)
-        standings = self._filter_standings_by_threshold(standings)
+        standings = self._filter_standings_by_threshold(standings, hits=4)
         current_gameweek = self._get_current_gameweek(standings["entry"][0])
         standings = self._add_manager_picks_transfers_cost(standings, current_gameweek)
-        standings = self._filter_net_top_managers(standings)
+        standings = self._filter_net_top_managers(standings, limit=10)
         standings = self._format_report(standings, current_gameweek)
 
         filename = f"fpl-motw-league-{league_id}-gameweek-{current_gameweek}.csv"
@@ -110,7 +110,7 @@ class ManagerOfTheWeek:
     def _filter_standings_by_threshold(
         self,
         standings: pl.DataFrame,
-        hits: int = 4,
+        hits: int,
     ) -> pl.DataFrame:
         """
         Get standings where the points are equal or above the threshold. The threshold is
@@ -119,7 +119,7 @@ class ManagerOfTheWeek:
 
         Args:
             standings: The league standings DataFrame.
-            hits: The number of hits to subtract from the top score (default is 4).
+            hits: The number of hits to subtract from the top score.
 
         Returns:
             pl.DataFrame: Filtered DataFrame with standings above the top score minus hits.
@@ -155,7 +155,7 @@ class ManagerOfTheWeek:
     def _filter_net_top_managers(
         self,
         standings: pl.DataFrame,
-        limit: int = 10,
+        limit: int,
     ) -> pl.DataFrame:
         """
         Get the top managers of the week based on their net event total after accounting
@@ -163,7 +163,7 @@ class ManagerOfTheWeek:
 
         Args:
             standings: The league standings DataFrame.
-            limit: The number of top manager to return (default is 10).
+            limit: The number of top manager to return.
 
         Returns:
             pl.DataFrame: A DataFrame with the top managers of the week.

@@ -24,6 +24,7 @@ import {
   IconAlertCircle,
   IconLoaderQuarter,
 } from "@tabler/icons-react";
+import { getApiUrl } from "../config";
 
 export default function Home() {
   const [leagueId, setLeagueId] = useState("");
@@ -91,13 +92,7 @@ export default function Home() {
     setLoading(true);
 
     try {
-      // Determine the API base URL - adjust this based on your deployment
-      const apiBaseUrl =
-        process.env.NODE_ENV === "production"
-          ? "/api" // Same origin when served by Python API
-          : "http://localhost:8000/api";
-
-      const response = await fetch(`${apiBaseUrl}/report/${leagueId}`, {
+      const response = await fetch(getApiUrl(`/report/${leagueId}`), {
         method: "POST",
       });
 
@@ -127,7 +122,7 @@ export default function Home() {
 
       setSuccess("Report generated and downloaded successfully!");
     } catch (err: any) {
-      console.error("Error generating report:", err);
+      console.error("[FPL-MOTW]", "Error generating report:", err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -285,7 +280,7 @@ export default function Home() {
               </Alert>
             )}
 
-            {/* Shareable URL Section */}
+            {/* Auto-Generate URL Section */}
             {leagueId && (
               <Paper
                 p="md"
@@ -298,10 +293,10 @@ export default function Home() {
               >
                 <Stack gap="sm">
                   <Text fw={500} c="green">
-                    📋 Shareable URL
+                    📋 Auto-Generate URL
                   </Text>
                   <Text size="sm" c="dimmed">
-                    Copy this URL to bookmark it or share with others:
+                    Start future generations automatically with this URL:
                   </Text>
 
                   <Paper
@@ -339,6 +334,7 @@ export default function Home() {
             )}
 
             {/* Help Section */}
+
             <Paper
               p="md"
               radius="md"

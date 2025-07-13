@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from .config import settings
 from .router.api import router as api_router
 
 app = FastAPI(docs_url=None, redoc_url=None)
@@ -12,7 +13,7 @@ app = FastAPI(docs_url=None, redoc_url=None)
 # Add CORS middleware to allow frontend connections
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -22,7 +23,7 @@ app.add_middleware(
 app.include_router(api_router, prefix="/api")
 
 # Mount static files directory
-static_dir = Path(__file__).parent / "static"
+static_dir = Path(__file__).parent / settings.STATIC_DIR
 if static_dir.exists():
     app.mount("/static", StaticFiles(directory=static_dir, html=True), name="static")
 
