@@ -19,6 +19,11 @@ class Settings:
     # Static files
     STATIC_DIR: str = os.getenv("STATIC_DIR", "static")
 
+    # Integrations
+    FPL_API_BASE_URL: str = os.getenv(
+        "FPL_API_BASE_URL", "https://fantasy.premierleague.com/api"
+    )
+
     @property
     def is_production(self) -> bool:
         return os.getenv("ENVIRONMENT", "development").lower() == "production"
