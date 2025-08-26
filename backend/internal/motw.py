@@ -67,7 +67,7 @@ class ManagerOfTheWeek:
                     "net_event_total"
                 )
             )
-            .sort("net_event_total", descending=True)
+            .sort(["net_event_total", "total"], descending=[True, True])
         )
         limit_score = standings["net_event_total"][
             limit - 1
@@ -136,8 +136,9 @@ class ManagerOfTheWeek:
             ).alias("web_link")
         )
         headers = {
-            "entry_name": "Team",
             "player_name": "Manager",
+            "entry_name": "Team",
+            "total": "Total Points",
             "event_total": "Gameweek Points",
             "transfers_cost": "Transfers Cost",
             "net_event_total": "Net Gameweek Points",
